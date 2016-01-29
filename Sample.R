@@ -72,7 +72,11 @@ round(importance(rf), 2)
 
 
 
-
+data = read.csv('agency_final.csv',stringsAsFactors = F)
+d = data[,c('AGENCY_ID','PROD_ABBR','GROWTH_RATE_3YR','STAT_PROFILE_DATE_YEAR')]
+mdata <- dcast(d, AGENCY_ID+PROD_ABBR~STAT_PROFILE_DATE_YEAR,value.var = 'GROWTH_RATE_3YR',mean)
+a = na.omit(mdata)
+apply(mdata,2,function(x) sum(is.na(x)))
 
 
 
