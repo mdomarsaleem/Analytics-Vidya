@@ -1,12 +1,12 @@
 rm(list=ls(all=TRUE))
 setwd("~/INSOFE/Project")
 
-library(data.table)
-library(glmnet)
 library(MASS)
 library(mice)
 library(rpart)
 library(DMwR)
+library(reshape2)
+library(data.table)
 library(caret)
 
 
@@ -60,10 +60,61 @@ good_variables <- row.names.data.frame(app)[app<20000]
 #good data set
 good_data <- agent[,good_variables]
 
-categorical <- colnames(good_data[,c(1,2,3,4,21,22)])
-numerical <- colnames(good_data[-c(1,2,3,4,21,22)])
+#Corelationplot
+numeric <- colnames(good_data)[5:20]
+corrplot::corrplot(cor(na.omit(good_data[,numeric])))
+
+
+good_data$QTY_Growth <- (good_data$POLY_INFORCE_QTY- good_data$PREV_POLY_INFORCE_QTY)/(good_data$PREV_POLY_INFORCE_QTY+1)
+good_data$AMOUNT_Growth <-  (good_data$WRTN_PREM_AMT- good_data$PREV_WRTN_PREM_AMT)/(good_data$PREV_WRTN_PREM_AMT+1)
+
+
+
+d = good_data[,c('AGENCY_ID','PROD_ABBR','STATE_ABBR','GROWTH_RATE_3YR','STAT_PROFILE_DATE_YEAR','POLY_INFORCE_QTY','WRTN_PREM_AMT','QTY_Growth','AMOUNT_Growth')]
+# magent <- dcast(d, AGENCY_ID+PROD_ABBR~STAT_PROFILE_DATE_YEAR,value.var = 'GROWTH_RATE_3YR',mean)
+magent <- dcast(setDT(d), AGENCY_ID+PROD_ABBR+STATE_ABBR~STAT_PROFILE_DATE_YEAR,value.var = c('GROWTH_RATE_3YR','POLY_INFORCE_QTY','WRTN_PREM_AMT','QTY_Growth','AMOUNT_Growth'),mean)
+magent <- data.frame(magent)
+
+#Plotting
+corrplot::corrplot(cor(na.omit(magent[,c(-1,-2,-3)])))
+
+# fit model
+formula <- paste('GROWTH_RATE_3YR_mean_2014~',paste(colnames(magent[,c(-1,-10,-17,-24,-31,-38)]),collapse = "+"))
+anova <- aov(GROWTH_RATE_3YR_mean_2014~.,magent[,c(-1,-17,-24,-31,-38)])
+summary(anova)
+
+linear <- lm(GROWTH_RATE_3YR_mean_2014~GROWTH_RATE_3YR_mean_2013 ,magent)
+summary(linear)
+opar <- par(mfrow = c(2,2), oma = c(0, 0, 1.1, 0))
+plot(linear, las = 1)
+
+#Getting collinearity
+library(car)
+vif(linear)
+outlierTest(linear)
+outliers = as.numeric(names(outlierTest(linear)[[1]]))
+
+#interaction Between Quantity and the Amount
+formula = paste(formula , '+I(WRTN_PREM_AMT_mean_2008/(QTY_Growth_mean_2008+1))',collapse = "+")
+linear <- lm(as.formula(formula) ,magent[-outliers,])
+summary(linear)
+
+#Robust linear regreesoion
+Robust <- rlm(as.formula(formula) ,magent)
+summary(Robust)
+opar <- par(mfrow = c(2,2), oma = c(0, 0, 1.1, 0))
+plot(Robust, las = 1)
+
+
+#Quantilt linear Regression
+library(quantreg)
+qr<- rq(GROWTH_RATE_3YR_mean_2014~. ,data = magent[,c(-1,-17,-24,-31,-38)])
+summary(qr)
+
 
 table(is.na(good_data$PREV_WRTN_PREM_AMT) & is.na(good_data$PREV_POLY_INFORCE_QTY))
+
+rm(agent)
 
 # Final_data <- knnImputation(good_data[,numerical],scale = T,k = 10)
 # Final_data <- cbind(Final_data,good_data[,categorical])
@@ -96,24 +147,144 @@ Final_data$Missing_agent <- ifelse(is.na(good_data$AGENCY_APPOINTMENT_YEAR),1,0)
 
 #########################Details on clean data################################
 
-c <- data.frame(apply(clean[,categorical],2,function(x) as.factor(x)))
+clean$GROWTH_RATE_3YR <- ifelse(clean$GROWTH_RATE_3YR<(-0.09),"low",ifelse(clean$GROWTH_RATE_3YR>0.05,"High","No_Change"))
+clean$GROWTH_RATE_3YR <- as.factor(clean$GROWTH_RATE_3YR)
+categorical <- colnames(good_data[,c(1,2,3,4,16,21,22)])
+numerical <- colnames(good_data[-c(1,2,3,4,16,21,22)])
+
+
+c <- data.frame(lapply(clean[,categorical] , factor))
 clean <- cbind(clean[,numerical],c)
 rm(c)
 clean$range <- clean$MAX_AGE - clean$MIN_AGE
 
-train <- clean[clean$STAT_PROFILE_DATE_YEAR<2013,]
-Validation <- clean[clean$STAT_PROFILE_DATE_YEAR==2013,]
+anova <- aov(as.numeric(GROWTH_RATE_3YR)~.-AGENCY_ID,data=clean)
+summary(anova)
+
+corrplot::corrplot(cor(clean[,numerical]))
+
+library(ggplot2)
+ggplot(clean[clean$STAT_PROFILE_DATE_YEAR>2010,],aes(x=PREV_WRTN_PREM_AMT,y=POLY_INFORCE_QTY))+
+  geom_point(aes(color=GROWTH_RATE_3YR))+scale_x_sqrt()
+
+ggplot(clean[clean$STAT_PROFILE_DATE_YEAR>2010,],aes(x=AGENCY_APPOINTMENT_YEAR,y=POLY_INFORCE_QTY))+
+  geom_point(aes(color=GROWTH_RATE_3YR))+scale_y_sqrt()
+
+ggplot(clean[clean$STAT_PROFILE_DATE_YEAR>2010,],aes(x=NB_WRTN_PREM_AMT,y=POLY_INFORCE_QTY*2))+
+  geom_point(aes(color=GROWTH_RATE_3YR))+scale_x_log10()+scale_y_sqrt()
+
+ggplot(clean[clean$STAT_PROFILE_DATE_YEAR>2010,],aes(x=PREV_WRTN_PREM_AMT,y=POLY_INFORCE_QTY))+
+  geom_point(aes(color=GROWTH_RATE_3YR))+scale_x_sqrt()
+
+train <- clean[clean$STAT_PROFILE_DATE_YEAR<2014,]
+#Validation <- clean[clean$STAT_PROFILE_DATE_YEAR==2013,]
 Test <- clean[clean$STAT_PROFILE_DATE_YEAR==2014,]
+install.packages('caret')
 
-
-fitControl <- trainControl(method = "repeatedcv",
+fitControl <- trainControl(method = "cv",
                            number = 3,
-                           repeats = 3)
-rpart <- train(GROWTH_RATE_3YR~.,data=rbind(train,Validation),
+                           repeats = 1)
+
+rpart <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+               ,data=train[train$STAT_PROFILE_DATE_YEAR>2012,],
                method = 'rpart',
-               # preProcess = c("center", "scale"),
-               tuneLength = 5,
-               trControl = fitControl) 
+               tuneGrid = expand.grid(cp=c(0.00005,0.0001,.0005)),
+               trControl = fitControl)
+rpart
+
+C50 <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+             ,data=train[train$STAT_PROFILE_DATE_YEAR>2012,],
+             method = 'C5.0',
+             tuneLength = 3,
+             trControl = fitControl)
+C50
+
+svm <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+             ,data=train[train$STAT_PROFILE_DATE_YEAR>2012,],
+             method = 'svmRadial',
+             tuneLength = 3,
+             trControl = fitControl)
+svm
+
+ada<- train(GROWTH_RATE_3YR~.-AGENCY_ID
+            ,data=train[train$STAT_PROFILE_DATE_YEAR>2012,],
+            method = 'ada',
+            tuneLength = 3,
+            trControl = fitControl)
+ada
+
+adaboost <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+                  ,data=train[train$STAT_PROFILE_DATE_YEAR>2012,],
+                  method = 'AdaBag',
+                  tuneLength = 3,
+                  trControl = fitControl)
+
+Extratrees <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+                    ,data=train[train$STAT_PROFILE_DATE_YEAR>2012,],
+                    method = 'extraTrees',
+                    tuneLength = 3,
+                    trControl = fitControl)
+
+glmboost <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+                  ,data=train[train$STAT_PROFILE_DATE_YEAR>2012,],
+                  method = 'glmboost',
+                  tuneLength = 3,
+                  trControl = fitControl)
+
+glmnet <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+                ,data=train[train$STAT_PROFILE_DATE_YEAR>2012,],
+                method = 'glmnet',
+                tuneLength = 3,
+                trControl = fitControl)
+
+nnet <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+              ,data=train[train$STAT_PROFILE_DATE_YEAR>2012,],
+              method = 'nnet',
+              tuneLength = 3,
+              trControl = fitControl)
+
+knn <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+             ,data=rbind(train,Validation),
+             method = 'knn',
+             tuneLength = 3,
+             trControl = fitControl)
+
+Naive <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+               ,data=train[train$STAT_PROFILE_DATE_YEAR>2012,],
+               method = 'nb',
+               tuneLength = 3,
+               trControl = fitControl)
+
+parRF <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+               ,data=rbind(train,Validation),
+               method = 'parRF',
+               tuneLength = 3,
+               trControl = fitControl)
+
+randomGLM <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+                   ,data=rbind(train,Validation),
+                   method = 'randomGLM',
+                   tuneLength = 3,
+                   trControl = fitControl)
+
+treebag <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+                 ,data=rbind(train,Validation),
+                 method = 'treebag',
+                 tuneLength = 3,
+                 trControl = fitControl)
+
+RandomForest <- train(GROWTH_RATE_3YR~.-AGENCY_ID
+                      ,data=train[train$STAT_PROFILE_DATE_YEAR>2012,],
+                      method = 'rf',
+                      tuneLength = 3,
+                      ntree = 20,
+                      do.trace = T,
+                      trControl = fitControl)
+
+library(rpart.plot)
+library(rattle)
+fancyRpartPlot(rpart$finalModel)
+rpart
 
 pred_test <- predict(rpart,Test)
 regr.eval(Test$GROWTH_RATE_3YR, pred_test)
