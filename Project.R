@@ -1,5 +1,5 @@
 rm(list=ls(all=TRUE))
-setwd("~/INSOFE/Project")
+setwd("C:/Users/Administrator/Downloads/AgentPerformance")
 
 library(MASS)
 library(mice)
@@ -68,6 +68,8 @@ corrplot::corrplot(cor(na.omit(good_data[,numeric])))
 
 good_data$QTY_Growth <- (good_data$POLY_INFORCE_QTY- good_data$PREV_POLY_INFORCE_QTY)/(good_data$PREV_POLY_INFORCE_QTY+1)
 good_data$AMOUNT_Growth <-  (good_data$WRTN_PREM_AMT- good_data$PREV_WRTN_PREM_AMT)/(good_data$PREV_WRTN_PREM_AMT+1)
+
+good_data <-na.omit(good_data)
 
 d = good_data[,c('AGENCY_ID','PROD_ABBR','STATE_ABBR','GROWTH_RATE_3YR','STAT_PROFILE_DATE_YEAR','POLY_INFORCE_QTY','WRTN_PREM_AMT','QTY_Growth','AMOUNT_Growth')]
 magent <- dcast(setDT(d), AGENCY_ID+PROD_ABBR+STATE_ABBR~STAT_PROFILE_DATE_YEAR,value.var = c('GROWTH_RATE_3YR','POLY_INFORCE_QTY','WRTN_PREM_AMT','QTY_Growth','AMOUNT_Growth'),fun=mean)
@@ -138,7 +140,7 @@ fitControl <- trainControl(method = "cv",
                            repeats = 3)
 
 rpart <- train(GROWTH_RATE_3YR_mean_2014~.
-               ,data=magent,
+               ,data=magent[,c(-1,-17,-24,-31,-38)],
                method = 'rpart',
                tuneGrid = expand.grid(cp=c(0.0001,0.0002,0.0004,0.00001,0.00005)),
                trControl = fitControl)
@@ -146,34 +148,35 @@ rpart
 plotcp(rpart$finalModel)
 
 glmboost <-  train(GROWTH_RATE_3YR_mean_2014~.
-                   ,data=magent,
-                  method = 'glmboost',
-                  tuneLength = 10,
-                  trControl = fitControl)
+                   ,data=magent[,c(-1,-17,-24,-31,-38)],
+                   method = 'glmboost',
+                   tuneLength = 10,
+                   trControl = fitControl)
 glmboost
 
 glmnet <-  train(GROWTH_RATE_3YR_mean_2014~.
-                 ,data=magent,
-                method = 'glmnet',
-                tuneLength = 10,
-                trControl = fitControl)
+                 ,data=magent[,c(-1,-17,-24,-31,-38)],
+                 method = 'glmnet',
+                 tuneLength = 10,
+                 trControl = fitControl)
 glmnet
 
 nnet <-  train(GROWTH_RATE_3YR_mean_2014~.
-               ,data=magent,
-              method = 'nnet',
-              tuneLength = 10,
-              trControl = fitControl)
+               ,data=magent[,c(-1,-17,-24,-31,-38)],
+               method = 'nnet',
+               tuneLength = 3,
+               trControl = fitControl)
 nnet
 
 RandomForest <- train(GROWTH_RATE_3YR_mean_2014~.
-                    ,data=magent,
+                      ,data=magent[,c(-1,-17,-24,-31,-38)],
                       method = 'rf',
                       tuneLength = 3,
-                      ntree = 20,
+                      ntree = 100,
                       do.trace = T,
                       trControl = fitControl)
 
+RandomForest
 library(rpart.plot)
 library(rattle)
 fancyRpartPlot(rpart$finalModel)
@@ -183,21 +186,54 @@ pred_test <- predict(rpart,Test)
 regr.eval(Test$GROWTH_RATE_3YR, pred_test)
 variable_imp3 <- data.frame(rpart$variable.importance)
 
-############################Predictions on imputed data#########################
-c <- data.frame(apply(good_data[,categorical],2,function(x) as.factor(x)))
-Imputed <- cbind(Final_data,c)
-rm(c)
-train <- Imputed[Imputed$STAT_PROFILE_DATE_YEAR<2013,]
-Validation <- Imputed[Imputed$STAT_PROFILE_DATE_YEAR==2013,]
-Test <- Imputed[Imputed$STAT_PROFILE_DATE_YEAR==2014,]
+library("caretEnsemble")
+system.time(
+model_list <- caretList(GROWTH_RATE_3YR_mean_2014~., data=magent[,c(-1,-17,-24,-31,-38)], trControl=fitControl,
+                        metric="Rsquared",
+                        tuneList=list(
+                          rpart=caretModelSpec(method="rpart", tuneGrid=expand.grid(cp=c(0.0001,0.0002,0.0004,0.00001,0.00005))),
+                          rf2=caretModelSpec(method="rf", tuneLength=4),
+                          nn=caretModelSpec(method="nnet", tuneLength=2, trace=FALSE),
+                          glmboost = caretModelSpec(method="glmboost",tuneLength=3),
+                          glmnet = caretModelSpec(method="glmnet",tuneLength=5),
+                          foba = caretModelSpec(method='foba',tuneLength=5),
+                          stepwise = caretModelSpec(method='lmStepAIC',tuneLength=5),
+                          quantile = caretModelSpec(method='rqlasso',tuneLength=3),
+                          rvm = caretModelSpec(method='rvmPoly',tuneLength=3)
+                        )
+)
+)
+
+modelCor(resamples(model_list))
+
+greedy_ensemble <- caretEnsemble(
+  model_list, 
+  metric="Rsquared",
+  trControl=trainControl(
+    number=2,
+    summaryFunction=twoClassSummary,
+    classProbs=TRUE
+  ))
+summary(greedy_ensemble)
+
+library("gbm")
+gbm_ensemble <- caretStack(
+  model_list,
+  method="gbm",
+  verbose=FALSE,
+  tuneLength=10,
+  metric="Rsquared",
+  trControl=trainControl(
+    method="boot",
+    number=10,
+    savePredictions="final",
+    classProbs=TRUE,
+    summaryFunction=twoClassSummary
+  )
+)
 
 
-rpart <- rpart(GROWTH_RATE_3YR~.,data=train)
-pred_validation <- predict(rpart,Validation)
 regr.eval(Validation$GROWTH_RATE_3YR, pred_validation)
 
 pred_test <- predict(rpart,Test)
 regr.eval(Test$GROWTH_RATE_3YR, pred_test)
-
-
-
