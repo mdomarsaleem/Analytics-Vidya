@@ -1,0 +1,561 @@
+News$NORMWordCount=(News$WordCount-minWC)/(maxWC-minWC)
+minHL=min(News$HeadlineLength)
+maxHL=max(News$HeadlineLength)
+News$NORMHeadlineLength=(News$HeadlineLength-minHL)/(maxHL-minHL)
+minAL=min(News$AbstractLength)
+maxAL=max(News$AbstractLength)
+News$NORMAbstractLength=(News$AbstractLength-minAL)/(maxAL-minAL)
+minWC=min(News$WordCount)
+maxWC=max(News$WordCount)
+News$NORMWordCount=(News$WordCount-minWC)/(maxWC-minWC)
+hist(News$NORMHeadlineLength)
+
+News$Web = as.factor(
+  grepl("tweet",tolower(News$Abstract))
+  |grepl("facebook",tolower(News$Abstract))
+  |grepl("Apple",News$Abstract)
+)
+News$Agressive = as.factor(
+  
+  grepl("military",tolower(News$Abstract))
+  |grepl("terror",tolower(News$Abstract))
+  |grepl("harass",tolower(News$Abstract))
+  |grepl("violence",tolower(News$Abstract))  
+  |grepl("rape",tolower(News$Abstract))
+  |grepl("insult",tolower(News$Abstract))
+  
+)
+News$Actual = as.factor(  
+  grepl("recent",tolower(News$Abstract))
+)
+News$Woman =  as.factor(  
+  grepl("woman",tolower(News$Abstract))
+  |grepl("women",tolower(News$Abstract))
+)
+News$Comment = as.factor(
+  grepl("comment", tolower(News$Abstract))  
+)
+News$False = as.factor(
+  grepl("false", tolower(News$Abstract))  
+  |grepl("wrong",tolower(News$Abstract))
+  |grepl("false", tolower(News$Headline))  
+  |grepl("wrong",tolower(News$Headline))
+)
+
+
+
+#News$Country = as.factor(News$Country==TRUE & News$Group=='OpEd')
+News$Geogr = as.factor(grepl('asia', tolower(News$Abstract))
+                       |grepl('europ',tolower(News$Abstract))
+                       |grepl('afric',tolower(News$Abstract))
+                       |grepl('mexic',tolower(News$Abstract))
+                       |grepl('canad',tolower(News$Abstract))
+                       |grepl('china',tolower(News$Abstract))
+                       |grepl('brazil',tolower(News$Abstract))
+                       |grepl('argent',tolower(News$Abstract))
+)
+
+News$LowInd = as.factor(News$Headline == 'Daily Clip Report'
+                        |grepl('^Democrat',News$Snippet)
+                        |grepl('^The Daily Gift',News$Headline)
+                        |grepl('^What We',News$Headline)
+                        |grepl('^Daily Clip Report',News$Headline)
+                        |grepl('^Gov',News$Snippet)
+                        |grepl('^Highlight',News$Snippet)
+                        |grepl('^Hillary',News$Snippet)
+                        |News$Headline == 'Tune In to The Times'
+                        |grepl('^President Obama',News$Snippet)
+                        |grepl('^Representative',News$Snippet)
+                        |grepl('^Senator',News$Snippet)
+                        |grepl('^Speaker',News$Snippet)
+                        |grepl('^The president',News$Snippet)
+                        |grepl('^The White House',News$Snippet)
+                        |grepl('^Republicans',News$Snippet)
+                        
+                        #                         |grepl('^Times critics', News$Abstract)
+                        #                         |grepl('^Have you been', News$Abstract)
+                        #                         |grepl('^This feature looks', News$Abstract)
+                        #                         |grepl('^Plus', News$Abstract)
+                        #                         |grepl('^6 Q', News$Headline)
+                        #                         |grepl('^Word of the Day', News$Headline)
+                        #                         |grepl('^New York Today', News$Headline)
+                        #                         |grepl('^Photos from', News$Abstract)
+                        #                         |grepl('^Over the past week', News$Abstract)
+                        #                         |grepl('^On Mondays', News$Abstract)
+                        #                         |grepl('^Joe on WNYC', News$Headline)
+                        #                         |grepl('^Test Yourself', News$Headline)
+                        #                         |grepl('^Weekly News Quiz', News$Headline)
+                        #                         |grepl('^What We',News$Headline)
+                        #                         |grepl('^From the International Herald',News$Abstract)
+                        #                         |grepl('^Friday and the weekend',News$Abstract)
+                        #                         |grepl('^A weekly capsule',News$Abstract)
+                        #                         |grepl('^A slideshow of arts',News$Abstract)
+)
+News$Politics = as.factor((grepl('democrat',tolower(News$Abstract))
+                           |grepl('republican',tolower(News$Abstract))
+                           |grepl('senat',tolower(News$Abstract))
+                           |grepl('obama',tolower(News$Abstract))
+                           |grepl('hillary',tolower(News$Abstract))
+                           |grepl('president',tolower(News$Abstract))
+                           |grepl('^election',tolower(News$Abstract))
+                           |grepl(' election',tolower(News$Abstract))
+                           |grepl('republican',tolower(News$Abstract))
+                           |grepl('white House',tolower(News$Abstract))
+) & News$NewsDesk!='OpEd')
+
+News$Google = grepl('googl',tolower(News$Abstract))
+News$Theater = grepl('theater',tolower(News$Abstract))
+News$LowOpEd = as.factor(
+  (grepl('music',tolower(News$Headline))
+   |grepl('music',tolower(News$Abstract))
+   |grepl('Civil War',News$Abstract)
+   |grepl('Confederat',News$Abstract)
+   |grepl('Union',News$Abstract)
+   |grepl('^Joe on WNYC',News$Headline)                
+   |grepl('^What We',News$Headline)
+  )
+  & (News$NewsDesk =='OpEd'))
+News$DailyRep = as.factor(
+  (grepl('daily', tolower(News$Headline))
+   &grepl('report', tolower(News$Headline)))
+)
+News$TechHigh = as.factor(
+  (grepl('Apple', News$Headline)
+   |grepl('Apple', News$Abstract)
+   |grepl('Amazon', News$Headline)
+   |grepl('Amazon', News$Abstract)
+   |grepl('Facebook', News$Headline)
+   |grepl('Facebook', News$Abstract))
+  &News$NewsDesk == 'Business' & News$SectionName == 'Technology'
+)
+
+News$NORMAbstractWordCount=(News$AbstractWordCount-minAWC)/(maxAWC-minAWC)
+
+#picture captions and other tiny snippets are really not substantive articles, they have 0 Populars and logistic will otherwise favor shortness
+#many but not all of these are captured in RegularBlogs/UnpopularRegularBlogs
+News$Short=as.factor(News$LogWordCount<1.8)
+#there's correlated cluster in word count vs. abstract length which is likely at Abstract just repeated as text, also not Popular
+#not sure my attempt to count words in abstract will ever quite match the original word count though...
+News$AbstractWordCount=sapply(gregexpr("\\b\\W+\\b", News$Abstract, perl=TRUE), function(x) sum(x>0) ) + 1
+minAWC=min(News$AbstractWordCount)
+maxAWC=max(News$AbstractWordCount)
+News$NORMAbstractWordCount=(News$AbstractWordCount-minAWC)/(maxAWC-minAWC)
+#it's close!
+News$AlternativeShort<-as.factor(News$WordCount<(News$AbstractWordCount+2))
+News$AlternativeShort2<-as.factor(News$WordCount<(News$AbstractWordCount*4))
+
+#words 
+#business is a category that has a medium number of popular items seemingly not well caught by RegularBlogs
+News$Facebook = as.factor(ifelse(grepl("Facebook",News$Headline,ignore.case=FALSE),1,0))
+News$Apple = as.factor(ifelse(grepl("Apple",News$Headline,ignore.case=FALSE),1,0))
+News$WallStreet=as.factor(ifelse(grepl("Wall St",News$HandA,ignore.case=FALSE),1,0))
+News$Asking=as.factor(ifelse(grepl("you think|Tell us|Tell Us|Do you|Do You|your comments|You Think",News$HandA,ignore.case=FALSE),1,0))
+#tried these next, not that useful
+News$Race=as.factor(ifelse(grepl("Race|racist|Garner|Ferguson|Ramos|black Americans|African-American|blacks|white privilege|white police|black men|black students|racial|racism|white Americans|Racist|Racism|Black Americans|Blacks|Whites|Racial|Black Students",News$HandA,ignore.case=FALSE),1,0))
+News$Controversy=as.factor(ifelse(grepl("conflict|furor|outrage|outcry|violence|protests|uproar|partisan|provoked|readers protest|shocked|turmoil|controversy|crisis|riot",News$HandA,ignore.case=FALSE),1,0))
+#these next seem popular even if not a question?
+News$HowWhatWhenWhy=as.factor(ifelse(substr(News$Headline,1,3)=='How'|substr(News$Headline,1,3)=='Why'|substr(News$Headline,1,4)=='What'|substr(News$Headline,1,4)=='When',1,0))
+
+#Regular Blogs
+#These should be useful because I can see them distinquishing popularity within NewsType- a subcategory.
+#should I have one big column and let the forest have at it?
+#My first idea was to lump unpopular (never popular) ones as one category and let the others (ones sometimes popular) be factors
+#but maybe one big column like a subcategory is better?  - NO, MODELS HATED THIS REGULAR BLOGS BUT NOT SURE WHY (unpopular regular blogs with just 2 options was very useful I think)
+#These were repeated headlines, repeated things before a colon, repeated things before | 
+#and  repeated patterns at the start of Headlines
+# | was a problem, could not treat like colon even with escape (?) but those were all in Education category which was 0 popularity already so I ignored them (6Q's, Word of the Day, etc)
+# also turned out to be a limit on the number of categories forest will handle
+# Would this have worked better if I had made a single column for each regular blog and let the forest have at that?
+
+News$YourTurn <- as.factor(ifelse(grepl("Your Turn:",News$Headline,ignore.case=FALSE),1,0))
+News$ThinkLikeaDoctor <- as.factor(ifelse(grepl("Think Like a Doctor",News$Headline,ignore.case=FALSE),1,0))
+News$Quandary <- as.factor(ifelse(grepl("Quandary",News$Headline,ignore.case=FALSE),1,0))
+News$ReadersRespond <- as.factor(ifelse(grepl("Readers Respond",News$Headline,ignore.case=FALSE),1,0))
+News$NewYork <- as.factor(ifelse(grepl("New York",News$Headline,ignore.case=FALSE),1,0))
+News$FandF <- as.factor(ifelse(grepl("Facts & Figures",News$Headline,ignore.case=FALSE),1,0))
+News$NoComment <- as.factor(ifelse(grepl("No Comment Necessary",News$Headline,ignore.case=FALSE),1,0))
+News$TV <- as.factor(ifelse(grepl("' Recap",News$Headline,ignore.case=FALSE),1,0))
+News$AskWell <- as.factor(ifelse(grepl("Ask Well",News$Headline,ignore.case=FALSE),1,0))
+News$TVnewsroom <- as.factor(ifelse(grepl("'The Newsroom' Recap",News$Headline,ignore.case=FALSE),1,0))
+News$TVaffair <- as.factor(ifelse(grepl("'The Affair' Recap",News$Headline,ignore.case=FALSE),1,0))
+News$TVhomeland <- as.factor(ifelse(grepl("'Homeland' Recap",News$Headline,ignore.case=FALSE),1,0))
+News$CivilWar <- ifelse(grepl("Civil War|Confederate|Union soldier|Union officer|John Bell Hood",News$HandA,ignore.case=FALSE),1,0)
+News$ReadingWith<-ifelse(grepl("Reading The Times With|Reading the Times With|Reading the Paper With",News$Headline,ignore.case=FALSE),1,0)
+News$Archive<-ifelse(grepl("Herald Tribune archive",News$Abstract,ignore.case=FALSE),1,0)
+News$ArtsHappenings<-ifelse(grepl("International Arts Events",News$Headline,ignore.case=FALSE),1,0)
+News$DailyClip<-ifelse(grepl("Daily Clip Report",News$Headline,ignore.case=FALSE),1,0)
+News$Fashion<-ifelse(grepl("Fashion Week",News$Headline,ignore.case=FALSE),1,0)
+News$Joe<-ifelse(grepl("Joe on WNYC",News$Headline,ignore.case=FALSE),1,0)
+News$Reading<-ifelse(grepl("What We're Reading|What Were Reading",News$Headline,ignore.case=FALSE),1,0)
+News$Tune<-ifelse(grepl("Tune In to The Times|Tune Into The Times",News$Headline,ignore.case=FALSE),1,0)
+News$Wrap<-ifelse(grepl("Weekly Wrap",News$Headline,ignore.case=FALSE),1,0)
+News$NYT<-ifelse(grepl("New York Today",News$Headline,ignore.case=FALSE),1,0)
+News$TodayIn<-ifelse(substr(News$Headline,1,8)=="Today in",1,0)
+News$Remembering=ifelse(grepl("Remembering",News$Headline,ignore.case=FALSE),1,0)
+News$Pictures=ifelse(grepl("Photos of the Day|Pictures of the Day|Week in Pictures",News$Headline,ignore.case=FALSE),1,0)
+News$Cryptic=ifelse(grepl("Variety: Cryptic Crossword",News$Headline,ignore.case=FALSE),1,0)
+News$TTop=ifelse(grepl("Top 10|From T's First 10 Years",News$Headline,ignore.case=FALSE),1,0)
+News$videoreviews=ifelse(grepl("Video Reviews of",News$Headline,ignore.case=FALSE),1,0)
+News$Historical=ifelse(!is.na(as.numeric(substr(News$Headline,1,4)))&as.numeric(substr(News$Headline,1,4))>1700&as.numeric(substr(News$Headline,1,4))<2014,1,0)
+
+
+News$TTop[substr(News$Headline,1,2)=="10"]<-1
+subset(News$Headline,News$TTop>0)
+News$BC<-substr(News$Headline,1,regexpr(":",News$Headline)-1)
+News$BC<-gsub("'","_",News$BC)
+test=as.data.frame(table(News$BC))
+write.csv(test, "beforecolon.csv", row.names=FALSE)
+subset(News$Headline,News$TTop>0)
+
+News$UnpopularRegularBlogs<-recode(News$BC,"'Weekend Reading'='1' ; 'Under Cover'='1';'Weekly Wrap'='1';'What We_re Watching'='1';'Analytics'='1';'Lunchtime Laughs'='1';'New York City_s Week in Pictures'='1';'Politics Helpline'='1';'Tune In to The Times'='1';'Behind the Cover Story'='1';
+        'Behind the Poster'='1';'Classical Playlist'='1';'Popcast'='1';'Friday Night Music'='1';'Book Review Podcast'='1';'International Arts Events Happening in the Week Ahead'='1';
+        'From the Upshot'='1';'From The Upshot'='1';'Walkabout'='1';'In Performance'='1';'London Fashion Week'='1';'First Draft Video'='1';'On This Day'='1';'Pictures of the Day'='1';'Q. and A.'='1';'Milan Fashion Week'='1';'The Daily Gift'='1';'New York Fashion Week'='1';'Verbatim'='1';'Paris Fashion Week'='1';'What We_re Reading'='1';'First Draft Focus'='1';'Today in Politics'='1';'Today in Small Business'='1';'Daily Report'='1';'Daily Clip Report'='1';'Morning Agenda'='1';'Variety'='1';else='0'")
+News$UnpopularRegularBlogs[News$Cryptic==1|News$NYT==1]<-'0'
+News$UnpopularRegularBlogs[News$Joe==1|News$Pictures==1|News$videoreviews==1|News$Fashion==1|News$DailyClip==1|News$ArtsHappenings==1|News$TodayIn==1|News$Archive==1|News$Tune==1|News$Reading==1|News$Wrap==1|News$ReadingWith==1|News$Tune==1]<-'1'
+News$RegularBlogs<-recode(News$BC,"'Behind the Poster'='Behind the';
+                                                      'Inside the Times 100'='Inside the Times 100';
+                                                      'Photos of the Day'='Pictures';
+                                                      'What We_re Reading'='What We_re';
+                                                      'From the Upshot'='From The Upshot';
+                                                      'Quandary'='Quandary';
+                                                      'Living With Cancer'='Living With Cancer';
+                                                      'Weekend Reading'='Weekend Reading';
+                                                      'Under Cover'='Under Cover';
+                                                      'Weekly Quandary'='Weekly Quandary';
+                                                      'Analytics'='Analytics';
+                                                      'Lunchtime Laughs'='Lunchtime Laughs';
+                                                      'Politics Helpline'='Politics Helpline';
+                                                      'Behind the Cover Story'='Behind the';
+                                                      'Facts & Figures'='Facts & Figures';
+                                                      'Think Like a Doctor'='Think Like a Doctor';
+                                                      'What We_re Watching'='What We_re';
+                                                      'No Comment Necessary'='No Comment Necessary';
+                                                      'Popcast'='Popcast';
+                                                      'Classical Playlist'='Classical Playlist';
+                                                      'First Draft Video'='First Draft';
+                                                      'Friday Night Music'='Friday Night Music';
+                                                      'Your Turn'='Your Turn';
+                                                      'Book Review Podcast'='Book Review Podcast';
+                                                      'From The Upshot'='From The Upshot';
+                                                      'Variety'='Variety';
+                                                      'Ask Well'='Ask Well';
+                                                      'On This Day'='History';
+                                                      'Readers Respond'='Readers Respond';
+                                                      'Walkabout'='Walkabout';
+                                                      'In Performance'='In Performance';
+                                                      'Pictures of the Day'='Pictures';
+                                                      'Q. and A.'='Q. and A.';
+                                                      'Verbatim'='Verbatim';
+                                                      'The Daily Gift'='The Daily Gift';
+                                                      'First Draft Focus'='First Draft';
+                                                      'Today in Small Business'='Today in';
+                                                      'Daily Report'='Daily Report';
+                                                      'Morning Agenda'='Morning Agenda';
+                                                      'New York Today'='New York Today';else='NO'")
+#now from the things without colon or otherwise needing consolidation
+News$RegularBlogs[News$Ttop==1]<-'Top Ten of Something'
+News$RegularBlogs[News$Cryptic==1]<-'NO'
+News$RegularBlogs[News$Tune==1]<-'Tune In To The Times'
+News$RegularBlogs[News$Wrap==1]<-'Weekly Wrap'
+News$RegularBlogs[News$Quandary==1]<-'Quandary'
+News$RegularBlogs[News$Joe==1]<-'Joe on WNYC'
+News$RegularBlogs[News$TV==1]<-'TV recap'
+News$RegularBlogs[News$TVaffair==1]<-'TV affair'
+News$RegularBlogs[News$TVnewsroom==1]<-'TV newsroom'
+News$RegularBlogs[News$TVhomeland==1]<-'TV homeland'
+News$RegularBlogs[News$CivilWar==1]<-'Civil War'
+News$RegularBlogs[News$DailyClip==1]<-'Daily Clip'
+News$RegularBlogs[News$ArtsHappenings==1]<-'Arts Happenings'
+News$RegularBlogs[News$Fashion==1]<-'Fashion Week'
+News$RegularBlogs[News$Archive==1]<-'History'
+News$RegularBlogs[News$ReadingWith==1]<-'Reading the Times With...'
+News$RegularBlogs[News$Reading==1]<-'What We_re'
+News$RegularBlogs[News$TodayIn==1]<-'Today in'
+News$RegularBlogs[News$Pictures==1]<-'Pictures'
+News$RegularBlogs[News$VideoRreviews==1]<-'Video'
+News$RegularBlogs[News$Historical==1&News$RegularBlogs=='none']<-'History'
+table(News$RegularBlogs,News$NewsType)
+#impute some NewsTypes 
+News$NewsType[News$NewsType=='']<-'none'
+
+all$whatReadWatch <- as.factor(ifelse(grepl(paste(whatReadWatch, collapse="|"), all$Headline)==TRUE,"Yes","No"))
+all$beginYear <- as.factor(ifelse(grepl("^[0-9][0-9][0-9][0-9]", all$Headline)==TRUE, "Yes","No"))
+all$QsAboutNews <- as.factor(ifelse(grepl("6 q's about the news", all$Headline)==TRUE, "Yes","No"))
+all$askWell <- as.factor(ifelse(grepl("ask well", all$Headline)==TRUE, "Yes","No"))
+all$dailyClip <- as.factor(ifelse(grepl("daily clip report", all$Headline)==TRUE, "Yes","No"))
+all$dailyReport <- as.factor(ifelse(grepl("daily report", all$Headline)==TRUE, "Yes","No"))
+all$dont <- as.factor(ifelse(grepl("don't", all$Headline)==TRUE,"Yes","No"))
+all$firstDraft <- as.factor(ifelse(grepl("first draft", all$Headline)==TRUE, "Yes","No"))
+all$mornAgenda <- as.factor(ifelse(grepl("morning agenda", all$Headline)==TRUE, "Yes","No"))
+all$playlist <- as.factor(ifelse(grepl("playlist", all$Headline)==TRUE, "Yes","No"))
+all$podcast <- as.factor(ifelse(grepl("podcast", all$Headline)==TRUE,"Yes","No"))
+all$readRespond <- as.factor(ifelse(grepl("readers respond", all$Headline)==TRUE, "Yes","No"))
+all$testYourself <- as.factor(ifelse(grepl("test yourself", all$Headline)==TRUE, "Yes","No"))
+all$theDailyGift <- as.factor(ifelse(grepl("the daily gift", all$Headline)==TRUE, "Yes","No"))
+all$todayIn <- as.factor(ifelse(grepl("today in", all$Headline)==TRUE, "Yes","No"))
+all$verbatim <- as.factor(ifelse(grepl("verbatim", all$Headline)==TRUE, "Yes","No"))
+all$wordOfDay <- as.factor(ifelse(grepl("word of the day", all$Headline)==TRUE, "Yes","No"))
+all$recap <- as.factor(ifelse(grepl("recap", all$Headline)==TRUE, "Yes","No"))
+
+
+brit <- c("britain", "british","england")
+all$brit <- as.factor(ifelse(grepl(paste(brit, collapse="|"), all$Headline)==TRUE,"Yes","No"))
+
+how <- c("\\<how\\>")
+all$how <- as.factor(ifelse(grepl(paste(how, collapse="|"), all$Headline)==TRUE,"Yes","No"))
+
+where <- c("\\<where\\>")
+all$where <- as.factor(ifelse(grepl(paste(where, collapse="|"), all$Headline)==TRUE,"Yes","No"))
+
+
+# Words related to religion -- people usually comment a lot on these types of articles
+religionWords <- c("secular","humanist","humanism","secularist","god","religion","atheist","atheism","islam","islamic","islamist",
+              "islamists","church","atheists","jesus","christ","christian","catholic","pope","imam", "\\<isis\\>","muslim","gay","marriage","israel","jewish","extremist",
+              "fundamentalism","terror","terrorist","terrorism")
+all$religionWords <- ifelse(grepl(paste(religionWords, collapse="|"), all$Headline)==TRUE,1,0)
+
+techWords <- c("apple","\\<ios\\>","ipod", "ipad","iphone","amazon","facebook")
+all$tech <- ifelse(grepl(paste(techWords, collapse="|"), all$Headline)==TRUE,1,0)
+
+techUnpop <- c("twitter","google")
+all$techUnpop <- ifelse(grepl(paste(techUnpop, collapse="|"), all$Headline)==TRUE,1,0)
+
+healthWords <- c("cancer","weight","fat","heart","disease","brain","sex","sexual","love","hate","doctor","doctors","medical","medicine","hospital","hospitals")
+all$health <- ifelse(grepl(paste(healthWords, collapse="|"), all$Headline)==TRUE,1,0)
+
+sciWords <- c("climate","warming","global","science","scientists")
+all$sci <- ifelse(grepl(paste(sciWords, collapse="|"), all$Headline)==TRUE,1,0)
+
+busWords <- c("jobs","employment","work","working","economy")
+all$business <- ifelse(grepl(paste(busWords, collapse="|"), all$Headline)==TRUE,1,0)
+
+# #Already in Bag of Words
+# all$york <- ifelse(grepl("york", all$Headline)==TRUE,1,0)
+
+# #Already in Bag of Words
+#all$ebola <- ifelse(grepl("ebola", all$Headline)==TRUE,1,0)
+
+# #Already in Bag of Words
+#all$today <- ifelse(grepl("today", all$Headline)==TRUE,1,0)
+# #Already in Bag of Words
+#all$fashion <- ifelse(grepl("fashion", all$Headline)==TRUE,1,0)
+# Already in Bag of Words
+#all$report <- ifelse(grepl("report", all$Headline)==TRUE,1,0)
+
+# political words correlated w/ high popularity
+poliHiWords <- c("republican", "conservative")
+all$poliHi <- ifelse(grepl(paste(poliHiWords, collapse="|"), all$Headline)==TRUE,1,0)
+
+poliLoWords <- c("politics")
+all$poliLo <- ifelse(grepl(paste(poliLoWords, collapse="|"), all$Headline),1,0)
+
+all$noComment <- ifelse(grepl("no comment necessary", all$Headline),1,0)
+all$comments <- ifelse(grepl("open for comments", all$Headline),1,0)
+
+
+
+all2$head.nchar = nchar(all$Headline)
+all2$head.nwords = sapply(strsplit(all$Headline, ' '), length)
+all2$head.nupper = count.c(all$Headline, "A-Z")
+all2$head.number = count.c(all$Headline, "0-9")
+all2$head.dollar = count.c(all$Headline, "$")
+all2$head.exclam = count.c(all$Headline, "!")
+all2$head.question = count.c(all$Headline, "?")
+all2$head.comma = count.c(all$Headline, ",")
+all2$head.dot = count.c(all$Headline, ".")
+all2$head.quote = count.c(all$Headline, "'")
+all2$head.colon = count.c(all$Headline, ":")
+all2$head.pipe = count.c(all$Headline, "|")
+all2$head.year = as.integer(attributes( regexpr( "[0-9]{4}:", strsplit(all$Headline, ' ') ))$match.length == 5)
+
+
+
+News$QQ = as.factor( grepl("question",tolower(News$Abstract)))
+News$NewsType[News$NewsType=='none'&News$RegularBlogs=='Fashion Week']<-'TStyle'
+News$NewsType[News$NewsType=='none'&News$RegularBlogs=='Pictures']<-'Multimedia'
+News$NewsType[News$NewsType=='none'&News$RegularBlogs=='Readers Respond']<-'OpEd'
+News$NewsType[News$NewsType=='none'&News$RegularBlogs=='The Daily Gift']<-'TStyle'
+News$NewsType[News$RegularBlogs=='What We_re']<-'Culture'
+News$NewsType[News$NewsType=='none'&News$RegularBlogs=='Reading the Times With...']<-'Culture'
+News$NewsType[News$NewsType=='none'&News$RegularBlogs=='Politics Helpline']<-'U.S.'
+News$NewsType[News$NewsType=='none'&News$RegularBlogs=='Today in']<-'U.S.'
+News$NewsType[grepl("Today in Politics",News$Headline,ignore.case=TRUE)]<-'U.S.'
+
+News$Negative    = as.factor(ifelse(grepl("\\<(never|do not|dont|don't|stop|quit|worst)\\>",
+                                          News$Headline, ignore.case=TRUE), 1, 0))
+News$SpecialWord = as.factor(ifelse(grepl("\\<(strange|incredible|epic|simple|ultimate|great|sex)\\>",
+                                          News$Headline, ignore.case=TRUE), 1, 0))
+
+
+News$NoComment = as.factor(ifelse(grepl(
+  paste0("6 q's about the news|daily|fashion week|first draft|in performance|",
+         "international arts events happening in the week ahead|",
+         "inside the times|lunchtime laughs|pictures of the day|playlist|",
+         "podcast|q\\. and a\\.|reading the times|test yourself|",
+         "throwback thursday|today in|the upshot|tune in to the times|",
+         "tune into the times|under cover|verbatim|walkabout|weekend reading|",
+         "weekly news quiz|weekly wrap|what we're (reading|watching)|",
+         "what's going on in this picture|word of the day|the daily gift"),
+  News$Headline, ignore.case=TRUE), 1, 0))
+
+News$Recurrent = as.factor(ifelse(grepl(
+  paste0("ask well|facts & figures|think like a doctor|readers respond|",
+         "no comment necessary|quandary|your turn"),
+  News$Headline, ignore.case=TRUE), 1, 0))
+
+News$Controversial = as.factor(ifelse(grepl(
+  paste0("\\<(gun control|abortion|birth control|",
+         "consent|rape|african-american|latino|racis(m|t))\\>"),
+  News$Headline, ignore.case=TRUE), 1, 0))
+
+News$Obama       = as.factor(ifelse(grepl("obama|president", News$Headline, ignore.case=TRUE), 1, 0))
+News$Republican  = as.factor(ifelse(grepl("republican", News$Headline, ignore.case=TRUE), 1, 0))
+News$Congress    = as.factor(ifelse(grepl("\\<(senate|congress)\\>", News$Headline, ignore.case=TRUE), 1, 0))
+News$Election    = as.factor(ifelse(grepl("\\<(election|campaign|poll(s|))\\>", News$Headline, ignore.case=TRUE), 1, 0))
+
+
+News$Health = as.factor(ifelse(grepl(
+  paste0("mental health|depress(a|e|i)|anxiety|schizo|",
+         "personality|psych(i|o)|therap(i|y)|brain|autis(m|t)|",
+         "carb|diet|cardio|obes|cancer|homeless"),
+  News$Headline), 1, 0))
+
+News$Family = as.factor(ifelse(grepl(
+  "education|school|kids|child|college|teenager|mother|father|parent|famil(y|ies)",
+  News$Headline, ignore.case=TRUE), 1, 0))
+
+News$Tech = as.factor(ifelse(grepl(
+  paste0("twitter|facebook|google|apple|microsoft|amazon|",
+         "uber|phone|ipad|tablet|kindle|smartwatch|",
+         "apple watch|match\\.com|okcupid|social (network|media)|",
+         "tweet|mobile| app "),
+  News$Headline, ignore.case=TRUE), 1, 0))
+
+News$Security = as.factor(ifelse(grepl("cybersecurity|breach|hack|password",
+                                       News$Headline, ignore.case=TRUE), 1, 0))
+
+News$Biz = as.factor(ifelse(grepl(
+  paste0("merger|acqui(s|r)|takeover|bid|i\\.p\\.o\\.|billion|",
+         "bank|invest|wall st|financ|fund|share(s|holder)|market|",
+         "stock|cash|money|capital|settlement|econo"),
+  News$Headline, ignore.case=TRUE), 1, 0))
+
+News$War = as.factor(ifelse(grepl(
+  paste0("israel|palestin|netanyahu|gaza|hamas|iran|",
+         "tehran|assad|syria|leban(o|e)|afghan|iraq|",
+         "pakistan|kabul|falluja|baghdad|islamabad|",
+         "sharif|isis|islamic state"),
+  News$Text, ignore.case=TRUE), 1, 0))
+
+News$Cuba = as.factor(ifelse(grepl("cuba|embargo|castro|havana",
+                                   News$Text, ignore.case=TRUE), 1, 0))
+
+News$Holidays = as.factor(ifelse(grepl("thanksgiving|hanukkah|christmas|santa",
+                                       News$Text, ignore.case=TRUE), 1, 0))
+
+News$Boring = as.factor(ifelse(grepl(
+  paste0("friday night music|variety|[[:digit:]]{4}|photo|today|",
+         "from the week in style|oscar|academy|golden globe|diary|",
+         "hollywood|red carpet|stars|movie|film|celeb|sneak peek|",
+         "by the book|video|music|album|spotify|itunes|taylor swift|",
+         "veteran|palin|kerry|mccain|rubio|rand paul|yellen|partisan|",
+         "capitol|bush|clinton|senator|congressman|governor|chin(a|e)|",
+         "taiwan|tibet|beijing|hongkong|russia|putin"),
+  News$Text, ignore.case=TRUE), 1, 0))
+rm(list = ls())
+setwd("C:/Users/Omar Saleem Mohammed/Downloads/Anaconda")
+
+library(readxl)
+library(dplyr)
+library(sets)
+
+
+
+#Predifined Functions
+text_corpus <- function(content){
+  
+  # Text Features
+  library(tm)
+  library(SnowballC)
+  corpus <- Corpus(VectorSource(content))
+  corpus <- tm_map(corpus, tolower)
+  corpus <- tm_map(corpus, PlainTextDocument)
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus,removeNumbers)
+  
+  #Removing special characters - all non alphanumeric
+  removeSpecialChars <- function(x) gsub("[^a-zA-Z0-9] ","",x)
+  corpus <- tm_map(corpus, removeSpecialChars)
+  corpus <- tm_map(corpus, PlainTextDocument)
+  removeNewLine <- function(x) gsub("[\n]","",x)
+  corpus <- tm_map(corpus, removeNewLine)
+  corpus <- tm_map(corpus, PlainTextDocument)
+  corpus <- tm_map(corpus, removeWords, stopwords("english"))
+  corpus <- tm_map(corpus, stemDocument, language = "english")
+  corpus <- tm_map(corpus, stripWhitespace)
+  corpus <- tm_map(corpus, PlainTextDocument)
+  return(corpus)
+}
+
+column_wise <- function(data) apply(data,2,function(x) sum(is.na(x)))
+
+
+#reading the Data
+
+full<-read_excel("Anaconda_SEO_competition_-_Dataset.xlsm", sheet = "Cleaned")
+count<-read_excel("Anaconda_SEO_competition_-_Training_Data_Google_Clicks_Volume.xlsx")
+
+train<- merge(full,count,by = "SitecoreID")
+test<-anti_join(full,count, by = "SitecoreID") 
+
+column_wise(train)
+corpus <- text_corpus(train$Title)
+
+library(RWeka)
+BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 1, max = 2))
+#dtm <- DocumentTermMatrix(corpus)
+dtm <- DocumentTermMatrix(corpus, control = list(tokenize = BigramTokenizer))
+data_set = data.frame(as.matrix(weightTfIdf(dtm)))
+colnames(data_set) = unique(colnames(data_set))
+data_set$TotalClicks = train$TotalClicks
+
+#Analysis of variables
+anova = aov(TotalClicks~.,data=data_set)
+
+#using simple cross validation in decision tree model
+library(caret)
+
+library(Metrics)
+maeSummary <- function (data,lev = NULL,model = NULL) {
+  out <- mae(data$obs, data$pred)  
+  names(out) <- "MAE"
+  out
+}
+
+fitControl <- trainControl(method = "cv"
+  ,number = 10
+  ,summaryFunction = maeSummary
+  )
+
+
+
+rpart <- train(TotalClicks ~ ., data = data_set, 
+              method = "rpart", 
+              trControl = fitControl,
+              metric = "MAE",
+              maximize = FALSE,
+              tuneLength=2
+                )
+rpart
+
+rf <- train(TotalClicks ~ ., data = data_set, 
+               method = "rf", 
+               trControl = fitControl,
+               metric = "MAE",
+               do.trace =10,
+             ntree=50,
+               maximize = FALSE,
+               tuneLength=2
+)
+rf
+
